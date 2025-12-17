@@ -3,7 +3,7 @@ Write-Host ">>> Installing Bibata Modern Ice Cursor..." -ForegroundColor Cyan
 
 # --- 1. CONFIGURATION ---
 # Target the specific extracted folder for the "Regular" version
-$SourcePath = "C:\Assets\Bibata-Modern-Ice-Windows\Bibata-Modern-Ice-Regular-Windows"
+$SourcePath = "C:\Assets\Bibata-Modern-Ice-Regular-Windows"
 $DestPath = "C:\Windows\Cursors\Bibata-Modern-Ice"
 
 # --- 2. ROBUST FILE COPY ---

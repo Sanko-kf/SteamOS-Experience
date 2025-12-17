@@ -6,7 +6,7 @@ color 0B
 :: ============================================================================
 :: 1. ADMINISTRATOR PRIVILEGES CHECK
 :: ============================================================================
-:: Validates that the script is running with elevated permissions for registry and system changes
+:: Validates that the script is running with elevated permissions
 net session >nul 2>&1
 if %errorLevel% neq 0 (
     echo [ERROR] This script must be run as Administrator.
@@ -28,17 +28,11 @@ reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Ta
 del /F /Q "%USERPROFILE%\Desktop\*.*" >nul 2>&1
 del /F /Q "C:\Users\Public\Desktop\*.*" >nul 2>&1
 
-:: --- Wallpaper & Lock Screen Configuration ---
+:: --- Wallpaper Configuration Only (Lock Screen Removed) ---
 if not exist "C:\Assets" mkdir "C:\Assets"
 if exist "C:\Assets\wallpaper.jpg" (
     echo    - Setting Desktop Wallpaper...
     powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Wallpaper { [DllImport(\"user32.dll\", CharSet=CharSet.Auto)] public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni); }'; [Wallpaper]::SystemParametersInfo(20, 0, 'C:\Assets\wallpaper.jpg', 3)"
-)
-if exist "C:\Assets\lock_screen.jpg" (
-    echo    - Setting Lock Screen Image...
-    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP" /v LockScreenImageStatus /t REG_DWORD /d 1 /f >nul
-    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP" /v LockScreenImagePath /t REG_SZ /d "C:\Assets\lock_screen.jpg" /f >nul
-    reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP" /v LockScreenImageUrl /t REG_SZ /d "C:\Assets\lock_screen.jpg" /f >nul
 )
 
 :: ============================================================================
@@ -61,8 +55,7 @@ if exist "C:\Scripts\cursor.ps1" (
     echo    - Running Cursor Installation script...
     powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Scripts\cursor.ps1"
 ) else (
-    echo    - CRITICAL ERROR: C:\Scripts\cursor.ps1 not found!
-    pause
+    echo    - NOTE: Custom cursor script not found in C:\Scripts. Skipping.
 )
 
 :: ============================================================================
@@ -78,13 +71,26 @@ if exist "C:\Assets\Bibata-Modern-Ice-Windows" rd /s /q "C:\Assets\Bibata-Modern
 echo.
 echo [4/6] Configuring User Avatar...
 if exist "C:\Assets\avatar.png" (
+    echo    - Copying avatar to System Account Pictures...
     set "SYS_PIC=C:\ProgramData\Microsoft\User Account Pictures"
-    takeown /f "%SYS_PIC%" /r /d o >nul 2>&1
-    icacls "%SYS_PIC%" /grant administrators:F /t >nul 2>&1
-    copy /y "C:\Assets\avatar.png" "%SYS_PIC%\user.png" >nul
-    copy /y "C:\Assets\avatar.png" "%SYS_PIC%\user-192.png" >nul
-    copy /y "C:\Assets\avatar.png" "%SYS_PIC%\guest.png" >nul
+    
+    :: Take ownership and grant permissions to modify the system folder
+    takeown /f "!SYS_PIC!" /r /d o >nul 2>&1
+    icacls "!SYS_PIC!" /grant administrators:F /t >nul 2>&1
+    
+    :: Copy the avatar to replace default system user images
+    :: We copy as both PNG and BMP to ensure compatibility
+    copy /y "C:\Assets\avatar.png" "!SYS_PIC!\user.png" >nul
+    copy /y "C:\Assets\avatar.png" "!SYS_PIC!\user.bmp" >nul
+    copy /y "C:\Assets\avatar.png" "!SYS_PIC!\user-192.png" >nul
+    copy /y "C:\Assets\avatar.png" "!SYS_PIC!\guest.png" >nul
+    copy /y "C:\Assets\avatar.png" "!SYS_PIC!\guest.bmp" >nul
+    
+    :: Force Windows to use these default tiles for all users
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v UseDefaultTile /t REG_DWORD /d 1 /f >nul
+    echo    - Avatar applied successfully.
+) else (
+    echo    - WARNING: C:\Assets\avatar.png not found. Skipping avatar setup.
 )
 
 echo.
